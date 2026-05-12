@@ -2,7 +2,6 @@ import {
   buildSessionContext,
   createAgentSession,
   createExtensionRuntime,
-  codingTools,
   SessionManager,
   type AgentSession,
   type AgentSessionEvent,
@@ -11,9 +10,9 @@ import {
   type ExtensionContext,
   type ResourceLoader,
   type Theme,
-} from "@mariozechner/pi-coding-agent";
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import { type AssistantMessage, type Message, type ThinkingLevel as AiThinkingLevel } from "@mariozechner/pi-ai";
+} from "@earendil-works/pi-coding-agent";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
+import { type AssistantMessage, type Message, type ThinkingLevel as AiThinkingLevel } from "@earendil-works/pi-ai";
 import {
   Box,
   Container,
@@ -28,7 +27,7 @@ import {
   type KeybindingsManager,
   type OverlayHandle,
   type TUI,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 
 const BTW_MESSAGE_TYPE = "btw-note";
 const BTW_ENTRY_TYPE = "btw-thread-entry";
@@ -938,6 +937,13 @@ function buildTranscriptBadge(
   return theme.bg(background, theme.fg(foreground, theme.bold(` ${label} `)));
 }
 
+class MirrorText {
+  constructor(public text = "") {}
+  setText(value: string): void {
+    this.text = value;
+  }
+}
+
 class BtwOverlayComponent extends Container implements Focusable {
   private readonly input: Input;
   private readonly transcript: Container;
@@ -946,6 +952,10 @@ class BtwOverlayComponent extends Container implements Focusable {
   private modeTextStr = "";
   private summaryTextStr = "";
   private hintsTextStr = "";
+  readonly statusText = new MirrorText("");
+  readonly modeText = new MirrorText("");
+  readonly summaryText = new MirrorText("");
+  readonly hintsText = new MirrorText("");
   private readonly readTranscriptEntries: () => BtwTranscript;
   private readonly getStatus: () => string | null;
   private readonly getMode: () => BtwThreadMode;
@@ -1114,7 +1124,7 @@ class BtwOverlayComponent extends Container implements Focusable {
 
     const lines = [this.borderLine(innerWidth, "top")];
 
-    lines.push(this.frameLine(this.theme.fg("accent", this.theme.bold(this.modeTextStr.trim())), innerWidth));
+    lines.push(this.frameLine(this.theme.fg("accent", this.theme.bold(this.modeText.text.trim())), innerWidth));
     lines.push(this.frameLine(this.theme.fg("dim", summary), innerWidth));
     lines.push(this.ruleLine(innerWidth));
 
@@ -1126,9 +1136,9 @@ class BtwOverlayComponent extends Container implements Focusable {
     }
 
     lines.push(this.ruleLine(innerWidth));
-    lines.push(this.frameLine(this.theme.fg("warning", this.statusTextStr.trim()), innerWidth));
+    lines.push(this.frameLine(this.theme.fg("warning", this.statusText.text.trim()), innerWidth));
     lines.push(this.inputFrameLine(dialogWidth));
-    lines.push(this.frameLine(this.theme.fg("dim", this.hintsTextStr.trim()), innerWidth));
+    lines.push(this.frameLine(this.theme.fg("dim", this.hintsText.text.trim()), innerWidth));
     lines.push(this.borderLine(innerWidth, "bottom"));
 
     return lines;
@@ -1162,6 +1172,10 @@ class BtwOverlayComponent extends Container implements Focusable {
 
     const status = this.getStatus() ?? "Ready. Enter submits; Escape dismisses without clearing.";
     this.statusTextStr = status;
+    this.modeText.setText(this.modeTextStr);
+    this.summaryText.setText(this.summaryTextStr);
+    this.statusText.setText(this.statusTextStr);
+    this.hintsText.setText("Enter submit · Alt+/ toggle focus · Escape dismiss · PgUp/PgDn scroll");
     this.hintsTextStr = "Enter submit · Alt+/ toggle focus · Escape dismiss · PgUp/PgDn scroll";
     this.tui.requestRender();
   }
@@ -1321,13 +1335,20 @@ export default function (pi: ExtensionAPI) {
       model: ctx.model,
       modelRegistry: ctx.modelRegistry,
       thinkingLevel: pi.getThinkingLevel() as SessionThinkingLevel,
-      tools: codingTools,
+      tools: ["read", "bash", "edit", "write"],
       resourceLoader: createBtwResourceLoader(ctx),
     });
 
     const { messages: seedMessages, sideThreadStartIndex } = buildBtwSeedState(ctx, pendingThread, mode);
     if (seedMessages.length > 0) {
-      session.agent.state.messages = seedMessages as typeof session.state.messages;
+      const agentSession = session as typeof session & {
+        agent?: { replaceMessages?: (messages: typeof seedMessages) => void };
+      };
+      if (typeof agentSession.agent?.replaceMessages === "function") {
+        agentSession.agent.replaceMessages(seedMessages);
+      } else {
+        session.state.messages = seedMessages as typeof session.state.messages;
+      }
     }
 
     return { session, mode, subscriptions: new Set(), sideThreadStartIndex };
@@ -1861,6 +1882,10 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_start", async (_event, ctx) => {
+    await restoreThread(ctx);
+  });
+
+  pi.on("session_switch" as any, async (_event: unknown, ctx: ExtensionContext) => {
     await restoreThread(ctx);
   });
 

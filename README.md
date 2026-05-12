@@ -1,4 +1,4 @@
-# pi-btw
+# @victor-software-house/pi-btw
 
 A small [pi](https://github.com/badlogic/pi-mono) extension that adds a `/btw` side conversation channel.
 
@@ -23,13 +23,13 @@ A small [pi](https://github.com/badlogic/pi-mono) extension that adds a `/btw` s
 ### From npm (after publish)
 
 ```bash
-pi install npm:pi-btw
+pi install npm:@victor-software-house/pi-btw
 ```
 
 ### From git
 
 ```bash
-pi install git:github.com/dbachelder/pi-btw
+pi install git:github.com/victor-software-house/pi-btw
 ```
 
 Then reload pi:

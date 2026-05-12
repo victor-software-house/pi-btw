@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, RegisteredCommand } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, RegisteredCommand } from "@earendil-works/pi-coding-agent";
 import btwExtension from "../extensions/btw";
 
 const { promptStreamMock, createAgentSessionMock, sessionManagerInMemoryMock, subSessionRecords } = vi.hoisted(() => ({
@@ -17,8 +17,8 @@ const { promptStreamMock, createAgentSessionMock, sessionManagerInMemoryMock, su
   }>,
 }));
 
-vi.mock("@mariozechner/pi-coding-agent", async () => {
-  const actual = await vi.importActual<typeof import("@mariozechner/pi-coding-agent")>("@mariozechner/pi-coding-agent");
+vi.mock("@earendil-works/pi-coding-agent", async () => {
+  const actual = await vi.importActual<typeof import("@earendil-works/pi-coding-agent")>("@earendil-works/pi-coding-agent");
   return {
     ...actual,
     createAgentSession: createAgentSessionMock,
@@ -112,8 +112,8 @@ const tuiMocks = vi.hoisted(() => {
   return { FakeInput, FakeContainer, FakeText, FakeSpacer, FakeBox };
 });
 
-vi.mock("@mariozechner/pi-tui", async () => {
-  const actual = await vi.importActual<typeof import("@mariozechner/pi-tui")>("@mariozechner/pi-tui");
+vi.mock("@earendil-works/pi-tui", async () => {
+  const actual = await vi.importActual<typeof import("@earendil-works/pi-tui")>("@earendil-works/pi-tui");
   return {
     ...actual,
     Container: tuiMocks.FakeContainer,
@@ -187,7 +187,7 @@ function createBlockingSuccessStream(answer: string) {
       yield {
         type: "tool_execution_end" as const,
         toolName: "read",
-        result: { content: [{ type: "text", text: '{"name":"pi-btw"}' }] },
+        result: { content: [{ type: "text", text: '{"name":"@victor-software-house/pi-btw"}' }] },
       };
       yield { type: "text_delta" as const, delta: answer };
       yield {
@@ -216,7 +216,7 @@ function createStreamingFailureStream() {
       yield {
         type: "tool_execution_end" as const,
         toolName: "read",
-        result: { content: [{ type: "text", text: '{"name":"pi-btw"}' }] },
+        result: { content: [{ type: "text", text: '{"name":"@victor-software-house/pi-btw"}' }] },
       };
       yield {
         type: "error" as const,
@@ -302,8 +302,11 @@ function createMockAgentSession(options: any) {
       get messages() {
         return stateMessages;
       },
+      set messages(messages: any[]) {
+        stateMessages = messages.map((message) => structuredClone(message));
+      },
       model: options.model,
-      tools: (options.tools ?? []).map((tool: any) => ({ name: tool.name })),
+      tools: (options.tools ?? []).map((name: string) => ({ name })),
     },
     get model() {
       return options.model;
@@ -405,7 +408,7 @@ function createMockAgentSession(options: any) {
       listeners.clear();
     }),
     bindExtensions: vi.fn(),
-    getActiveToolNames: vi.fn(() => (options.tools ?? []).map((tool: any) => tool.name)),
+    getActiveToolNames: vi.fn(() => options.tools ?? []),
   };
 
   record.session = session;
@@ -563,11 +566,14 @@ function createHarness(
     ui: ui as any,
     sessionManager: sessionManager as any,
     modelRegistry: {
-      getApiKey: vi.fn(async () => (hasCredentials ? "test-key" : undefined)),
+      getApiKeyAndHeaders: vi.fn(async () =>
+        hasCredentials ? { ok: true, apiKey: "test-key", headers: {} } : { ok: false, error: "missing credentials" },
+      ),
     },
     model,
     getSystemPrompt: () => "system",
     isIdle: () => idle,
+    waitForIdle: vi.fn(async () => {}),
   };
 
   async function runEvent(name: string, event: unknown = {}, ctx: ExtensionContext | ExtensionCommandContext = baseCtx as any) {
@@ -670,7 +676,7 @@ describe("btw runtime behavior", () => {
     const options = createAgentSessionMock.mock.calls[0][0];
     expect(options.model).toBe(harness.baseCtx.model);
     expect(options.modelRegistry).toBe(harness.baseCtx.modelRegistry);
-    expect(options.tools.map((tool: any) => tool.name)).toEqual(["read", "bash", "edit", "write"]);
+    expect(options.tools).toEqual(["read", "bash", "edit", "write"]);
     expect(options.resourceLoader.getAppendSystemPrompt()[0]).toContain(
       "You are having an aside conversation with the user, separate from their main working session.",
     );
@@ -947,14 +953,14 @@ describe("btw runtime behavior", () => {
       yield {
         type: "tool_execution_end" as const,
         toolName: "read",
-        result: { content: [{ type: "text", text: '{"name":"pi-btw"}' }] },
+        result: { content: [{ type: "text", text: '{"name":"@victor-software-house/pi-btw"}' }] },
       };
-      yield { type: "text_delta" as const, delta: "The package is pi-btw." };
+      yield { type: "text_delta" as const, delta: "The package is @victor-software-house/pi-btw." };
       yield {
         type: "done" as const,
         message: {
-          ...makeAssistantMessage("The package is pi-btw."),
-          content: buildAssistantContent("Inspecting package.json", "The package is pi-btw."),
+          ...makeAssistantMessage("The package is @victor-software-house/pi-btw."),
+          content: buildAssistantContent("Inspecting package.json", "The package is @victor-software-house/pi-btw."),
         },
       };
     });
@@ -981,12 +987,12 @@ describe("btw runtime behavior", () => {
     expect(entries[4]).toMatchObject({
       type: "tool-result",
       toolName: "read",
-      content: '{"name":"pi-btw"}',
+      content: '{"name":"@victor-software-house/pi-btw"}',
       truncated: false,
       isError: false,
       streaming: false,
     });
-    expect(entries[5]).toMatchObject({ type: "assistant-text", text: "The package is pi-btw.", streaming: false });
+    expect(entries[5]).toMatchObject({ type: "assistant-text", text: "The package is @victor-software-house/pi-btw.", streaming: false });
     expect(entries[6]).toMatchObject({ type: "turn-boundary", phase: "end" });
   });
 
@@ -1010,12 +1016,12 @@ describe("btw runtime behavior", () => {
           toolName: "read",
           result: { content: [{ type: "text", text: longToolResult }] },
         };
-        yield { type: "text_delta" as const, delta: "The package is pi-btw." };
+        yield { type: "text_delta" as const, delta: "The package is @victor-software-house/pi-btw." };
         yield {
           type: "done" as const,
           message: {
-            ...makeAssistantMessage("The package is pi-btw."),
-            content: buildAssistantContent("Inspecting package.json", "The package is pi-btw."),
+            ...makeAssistantMessage("The package is @victor-software-house/pi-btw."),
+            content: buildAssistantContent("Inspecting package.json", "The package is @victor-software-house/pi-btw."),
           },
         };
       })
@@ -1071,7 +1077,7 @@ describe("btw runtime behavior", () => {
     entries = transcriptEntries(overlay);
     expect(findLatest(entries, (entry: any) => entry.type === "tool-result")).toMatchObject({
       toolName: "read",
-      content: '{"name":"pi-btw"}',
+      content: '{"name":"@victor-software-house/pi-btw"}',
       truncated: false,
       isError: false,
       streaming: false,

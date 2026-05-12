@@ -7,19 +7,23 @@ settings:
 importers:
 
   .:
-    devDependencies:
+    dependencies:
       '@earendil-works/pi-agent-core':
-        specifier: ^0.74.0
+        specifier: '>=0.74.0'
         version: 0.74.0(ws@8.20.0)(zod@4.4.3)
       '@earendil-works/pi-ai':
-        specifier: ^0.74.0
+        specifier: '>=0.74.0'
         version: 0.74.0(ws@8.20.0)(zod@4.4.3)
       '@earendil-works/pi-coding-agent':
-        specifier: ^0.74.0
+        specifier: '>=0.74.0'
         version: 0.74.0(ws@8.20.0)(zod@4.4.3)
       '@earendil-works/pi-tui':
-        specifier: ^0.74.0
+        specifier: '>=0.74.0'
         version: 0.74.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.7.0
+        version: 25.7.0
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
