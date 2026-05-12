@@ -31,7 +31,8 @@
   },
   "scripts": {
     "test": "vitest --run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run typecheck && pnpm test"
   },
   "pi": {
     "extensions": [
@@ -43,16 +44,20 @@
     "image": "https://raw.githubusercontent.com/dbachelder/pi-btw/main/docs/btw-overlay.png"
   },
   "peerDependencies": {
-    "@mariozechner/pi-ai": ">=0.65.0",
-    "@mariozechner/pi-coding-agent": ">=0.65.0",
-    "@mariozechner/pi-tui": ">=0.65.0"
+    "@earendil-works/pi-ai": ">=0.74.0",
+    "@earendil-works/pi-coding-agent": ">=0.74.0",
+    "@earendil-works/pi-tui": ">=0.74.0"
   },
   "devDependencies": {
-    "@mariozechner/pi-agent-core": "0.65.0",
-    "@mariozechner/pi-ai": "0.65.0",
-    "@mariozechner/pi-coding-agent": "0.65.0",
-    "@mariozechner/pi-tui": "0.65.0",
+    "@earendil-works/pi-agent-core": "^0.74.0",
+    "@earendil-works/pi-ai": "^0.74.0",
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0",
     "typescript": "^5.8.3",
     "vitest": "^4.1.0"
+  },
+  "packageManager": "pnpm@11.1.1",
+  "engines": {
+    "node": ">=24.0.0"
   }
 }
